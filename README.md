@@ -1,1 +1,2 @@
-# arcgis_js_maps
+# Vue 3 + Vite
+
