@@ -18,8 +18,18 @@ const viewDiv = ref(null);
 let mapView = ref()
 let drainageLayer;
 let psUrl  = 'http://112.94.67.106:6080/arcgis/rest/services/app/PS_SPOUT_M/MapServer'
+// feature 自定义样式
+const trailheadsRenderer = {
+  "type": "simple",
+  "symbol": {
+    "type": "picture-marker",
+    "url": "http://static.arcgis.com/images/Symbols/NPS/npsPictograph_0231b.png",
+    "width": "16px",
+    "height": "16px"
+  }
+}
+let highlightSelect;
 onMounted(() => {
-
   /*
     // 三维图层 DEMO
     const map = new Map({
@@ -47,14 +57,13 @@ onMounted(() => {
     url: "http://112.94.67.106:6080/proxy/80cec1371ca6f576/4dfa4360488bfc42",
   });
   const vecBasemap = new Basemap({
-    // baseLayers: [mapBaseLayerVec],
-    basemap: "arcgis-topographic",
-
-    title: "矢量图",
-    id: "cva_w",
+    baseLayers: [mapBaseLayerVec],
+    // title: "矢量图",
+    // id: "cva_w",
   });
   const map = new Map({
-    basemap: vecBasemap,
+    // basemap: vecBasemap,
+    basemap: "osm",
   });
   mapView = new MapView({
     container: viewDiv.value,
@@ -63,20 +72,71 @@ onMounted(() => {
     zoom: 13
   });
   mapView.ui.remove('attribution')
-  mapView.on('click', e => {
-    mapView.hitTest(e).then(response => {
-      console.log(response);
-    })
-  })
+
+  // get points layer
   drainageLayer = new FeatureLayer({
     // id: 'drainageLayer',
     // url: psUrl + '/1',
-    // outFields: ['*']
-    url : 'https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads/FeatureServer/0'
+    // outFields: ['*'],
+    url : 'https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads/FeatureServer/0',
+    renderer: trailheadsRenderer,
   })
   console.log(drainageLayer);
   mapView.map.add(drainageLayer)
+  mapView.on('click', event => {
+    mapView.hitTest(event).then(response => {
+      queryFeatures(event);
+      highLightFeature(response.results[0].graphic);
+      gotoPosition(response.results[0].graphic)
+    })
+  })
 });
+
+function queryFeatures(screenPoints){
+  const point = mapView.toMap(screenPoints);
+  const query = drainageLayer.createQuery()
+  query.geometry = point;
+  query.spatialRelationship = 'within';
+  query.returnGeometry = true;
+  drainageLayer.queryFeatures(
+    query
+    // geometry:point,
+    // spatialRelationship: "within",
+    // returnGeometry: true,
+    // returnQueryGeometry: true,
+    // outFields: ["*"],
+  ).then(featureSet=>{
+    console.log(featureSet.features);
+  })
+}
+
+function highLightFeature(graphic){
+  mapView.whenLayerView(drainageLayer).then(layerView => {
+    if(highlightSelect) highlightSelect.remove();
+    highlightSelect = layerView.highlight(graphic)
+  })
+}
+
+
+function gotoPosition(feature){
+  mapView.goTo(
+          {
+            target: feature.geometry,
+            tilt: 70,
+            zoom: 16
+          },
+          {
+            duration: 500,
+            easing: "in-out-expo"
+          }
+      )
+      .catch((error) => {
+        if (error.name != "AbortError") {
+          console.error(error);
+        }
+      });
+}
+
 
 </script>
 
