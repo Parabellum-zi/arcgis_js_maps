@@ -1,9 +1,9 @@
 <script setup>
-import HelloWorld from "./components/HelloWorld.vue";
+import BaseMap from "./components/map/BaseMap.vue";
 </script>
 
 <template>
-  <HelloWorld />
+  <BaseMap/>
 </template>
 
 <style>
